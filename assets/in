@@ -6,7 +6,7 @@ set -e
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
 
-source $(dirname $0)/common.sh
+. $(dirname $0)/common.sh
 
 destination=$1
 
@@ -56,10 +56,13 @@ if [ "$skip_download" = "false" ]; then
 
   docker save -o ${destination}/image "$image_name"
 
-  if [ "$rootfs" = "true" ]; then
-    docker run --cidfile=container.cid "$image_name" echo container created
-    docker export $(cat container.cid) > ${destination}/rootfs.tar
-  fi
+  docker run --cidfile=container.cid "$image_name" echo container created
+
+  mkdir ${destination}/rootfs
+  docker export $(cat container.cid) | tar xf - -C ${destination}/rootfs
+  cat > ${destination}/metadata.json <<EOF
+{"env":["A=1","B=2"]}
+EOF
 fi
 
 image_id="$(image_from_digest "$repository" "$digest")"

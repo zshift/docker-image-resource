@@ -1,8 +1,6 @@
-FROM concourse/busyboxplus:iptables
+FROM ubuntu:14.04
 
-RUN for cert in `ls -1 /etc/ssl/certs/*.pem`; \
-      do cat "$cert" >> /etc/ssl/certs/ca-certificates.crt; \
-    done
+RUN apt-get -y update && apt-get -y install iptables
 
 ADD https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 /usr/local/bin/jq
 RUN chmod +x /usr/local/bin/jq
@@ -11,6 +9,8 @@ ADD https://get.docker.io/builds/Linux/x86_64/docker-latest /usr/local/bin/docke
 RUN chmod +x /usr/local/bin/docker
 
 RUN /usr/local/bin/docker --version
+
+RUN apt-get -y update && apt-get -y install ca-certificates
 
 ADD assets/ /opt/resource/
 RUN chmod +x /opt/resource/*

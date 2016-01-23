@@ -54,7 +54,7 @@ setup_graph() {
 
   i=0
   until make_and_setup $i $image >/tmp/setup_loopback.log 2>&1; do
-    if grep 'No such file or directory' /tmp/setup_loopback.log; then
+    if grep 'could not find any free loop device' /tmp/setup_loopback.log; then
       i=$(expr $i + 1)
     else
       echo "failed to setup loopback device:"
