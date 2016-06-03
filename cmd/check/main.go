@@ -77,15 +77,20 @@ func main() {
 func makeTransport(request CheckRequest, registryHost string, repository string) (http.RoundTripper, string) {
 	tlsConfig := &tls.Config{}
 
-	if request.Source.CACert != nil {
+	if len(request.Source.CACerts) != 0 {
 		if len(request.Source.InsecureRegistries) != 0 {
 			fatal("unable to specify both insecure registries and CA certificate")
 		}
 
-		cert, err := x509.ParseCertificate([]byte(request.Source.CACert))
-		fatalIf("failed to load CA certificate", err)
+		caCertPool := x509.NewCertPool()
 
-		tlsConfig.Certificates = []tls.Certificate{cert}
+		for _, rawCert := range request.Source.CACerts {
+			cert, err := x509.ParseCertificate([]byte(rawCert))
+			fatalIf("failed to load CA certificate", err)
+			caCertPool.AddCert(cert)
+		}
+
+		tlsConfig.RootCAs = caCertPool
 	}
 
 	baseTransport := &http.Transport{
@@ -96,7 +101,7 @@ func makeTransport(request CheckRequest, registryHost string, repository string)
 			DualStack: true,
 		}).Dial,
 		DisableKeepAlives: true,
-		TLSClientConfig:   &tlsConfig,
+		TLSClientConfig:   tlsConfig,
 	}
 
 	var insecure bool

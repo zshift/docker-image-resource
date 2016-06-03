@@ -8,7 +8,7 @@ type Source struct {
 	Email              string   `json:"email"`
 	InsecureRegistries []string `json:"insecure_registries"`
 	RegistryMirror     string   `json:"registry_mirror"`
-	CACert             string   `json:"ca_cert"`
+	CACerts            []string `json:"ca_certs"`
 }
 
 type Version struct {

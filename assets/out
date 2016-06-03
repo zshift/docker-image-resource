@@ -34,9 +34,9 @@ username=$(jq -r '.source.username // ""' < $payload)
 password=$(jq -r '.source.password // ""' < $payload)
 email=$(jq -r '.source.email // ""' < $payload)
 repository=$(jq -r '.source.repository // ""' < $payload)
-ca_cert=$(jq -r '.source.ca_cert // ""' < $payload)
+ca_certs=$(jq -r '.source.ca_certs // []' < $payload)
 
-if [ -n "$ca_cert" ] && [ -n "$insecure_registries" ]; then
+if [ -n "$ca_certs" ] && [ -n "$insecure_registries" ]; then
   echo "unable to specify both insecure registries and CA certificate" >&2
   exit 1
 fi
@@ -47,7 +47,7 @@ else
   registry=
 fi
 
-tls_options=$(tls_options "$ca_cert")
+tls_options=$(tls_options "$ca_certs")
 
 if [ -n "${username}" ] && [ -n "${password}" ] && [ -n "${email}" ]; then
   docker "{$tls_options}" login -u "${username}" -p "${password}" -e "${email}" ${registry}
@@ -110,7 +110,7 @@ if [ -n "$build" ]; then
   else
     docker "{$tls_options}" build -t "${repository}:${tag_name}" "$build"
   fi
-  
+
 elif [ -n "$load_file" ]; then
   docker "{$tls_options}" load -i "$load_file"
   docker "{$tls_options}" tag "${load_repository}:${load_tag}" "${repository}:${tag_name}"
