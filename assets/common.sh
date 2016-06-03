@@ -115,14 +115,9 @@ image_from_digest() {
   docker images --no-trunc --digests "$1" | awk "{if (\$3 == \"$2\") print \$4}"
 }
 
-count_certs() {
-  local length="(jq -r '. | length' < $1)"
-  echo "$length"
-}
-
 certs_to_file() {
   local raw_ca_certs="${1}"
-  local length="(jq -r '. | length' < $1)"
+  local length="$(echo $raw_ca_certs | jq -r '. | length')"
 
   local path=/tmp/ca_certs.pem
 
@@ -135,12 +130,12 @@ certs_to_file() {
 }
 
 tls_options() {
-  local ca_certs_path="$(certs_to_file ${1})"
+  local ca_certs_path=`certs_to_file "${1}"`
 
-  if -e "$ca_certs_path"; then
-    echo ""
-  else
+  if [ -e "$ca_certs_path" ]; then
     echo "--tlsverify --tlscacert=$ca_certs_path"
+  else
+    echo ""
   fi
 }
 
@@ -160,6 +155,7 @@ docker_pull() {
 
     printf "...\n"
 
+    # TODO: this and possibly others maybe need the TLS flags too
     if docker pull "$1"; then
       printf "\nSuccessfully pulled ${GREEN}%s${NC}.\n\n" "$1"
       return
