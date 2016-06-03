@@ -115,6 +115,17 @@ image_from_digest() {
   docker images --no-trunc --digests "$1" | awk "{if (\$3 == \"$2\") print \$4}"
 }
 
+tls_options() {
+  local ca_cert=$1
+
+  if -n "$ca_cert"; then
+    echo ""
+  else
+    echo "$ca_cert" > /tmp/ca_cert.pem
+    echo "--tlsverify --tlscacert=/tmp/ca_cert.pem"
+  fi
+}
+
 docker_pull() {
   GREEN='\033[0;32m'
   RED='\033[0;31m'

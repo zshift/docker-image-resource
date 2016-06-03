@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -74,6 +75,19 @@ func main() {
 }
 
 func makeTransport(request CheckRequest, registryHost string, repository string) (http.RoundTripper, string) {
+	tlsConfig := &tls.Config{}
+
+	if request.Source.CACert != nil {
+		if len(request.Source.InsecureRegistries) != 0 {
+			fatal("unable to specify both insecure registries and CA certificate")
+		}
+
+		cert, err := x509.ParseCertificate([]byte(request.Source.CACert))
+		fatalIf("failed to load CA certificate", err)
+
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
 	baseTransport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -82,6 +96,7 @@ func makeTransport(request CheckRequest, registryHost string, repository string)
 			DualStack: true,
 		}).Dial,
 		DisableKeepAlives: true,
+		TLSClientConfig:   &tlsConfig,
 	}
 
 	var insecure bool

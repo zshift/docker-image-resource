@@ -17,8 +17,13 @@ Tracks and builds [Docker](https://docker.io) images.
 
 * `insecure_registries`: *Optional.* An array of CIDRs or `host:port` addresses
   to whitelist for insecure access (either `http` or unverified `https`).
+  This option is incompatible with `ca_cert`.
 
 * `registry_mirror`: *Optional.* A URL pointing to a docker registry mirror service.
+
+* `ca_cert`: *Optional.* The trusted docker registry's x509 CA certificate.
+  This is used to validate the certificate of the docker registry when the registry provides a self-signed certificate.
+  This option is incompatible with `insecure_registries`.
 
 Note: docker registry must be [v2](https://docs.docker.com/registry/spec/api/).
 

@@ -33,12 +33,20 @@ password=$(jq -r '.source.password // ""' < $payload)
 email=$(jq -r '.source.email // ""' < $payload)
 repository="$(jq -r '.source.repository // ""' < $payload)"
 tag="$(jq -r '.source.tag // "latest"' < $payload)"
+ca_cert=$(jq -r '.source.ca_cert // ""' < $payload)
+
+if [ -n "$ca_cert" ] && [ -n "$insecure_registries" ]; then
+  echo "unable to specify both insecure registries and CA certificate" >&2
+  exit 1
+fi
 
 if private_registry "${repository}" ; then
   registry="$(extract_registry "${repository}")"
 else
   registry=
 fi
+
+tls_options=$(tls_options "$ca_cert")
 
 digest="$(jq -r '.version.digest' < $payload)"
 
@@ -52,26 +60,26 @@ image_name="${repository}@${digest}"
 
 if [ "$skip_download" = "false" ]; then
   if [ -n "${username}" ] && [ -n "${password}" ] && [ -n "${email}" ]; then
-    docker login -u "${username}" -p "${password}" -e "${email}" ${registry}
+    docker "{$tls_options}" login -u "${username}" -p "${password}" -e "${email}" ${registry}
   fi
 
   docker_pull "$image_name"
 
   if [ "$save" = "true" ]; then
-    docker save -o ${destination}/image "$image_name"
+    docker "{$tls_options}" save -o ${destination}/image "$image_name"
   fi
 
-  docker run \
+  docker "{$tls_options}" run \
     --cidfile=/tmp/container.cid \
     -v /opt/resource/print-metadata:/tmp/print-metadata \
     --entrypoint /tmp/print-metadata  \
     "$image_name" > ${destination}/metadata.json
 
   mkdir -p ${destination}/rootfs/
-  docker export $(cat /tmp/container.cid) | tar -xf - -C ${destination}/rootfs/
+  docker "{$tls_options}" export $(cat /tmp/container.cid) | tar -xf - -C ${destination}/rootfs/
 
   if [ "$rootfs" = "true" ]; then
-    docker export $(cat /tmp/container.cid) > ${destination}/rootfs.tar
+    docker "{$tls_options}" export $(cat /tmp/container.cid) > ${destination}/rootfs.tar
   fi
 fi
 
