@@ -47,10 +47,10 @@ else
   registry=
 fi
 
-tls_options=$(tls_options "$ca_certs")
+tls_opts=$(tls_options "$ca_certs")
 
 if [ -n "${username}" ] && [ -n "${password}" ] && [ -n "${email}" ]; then
-  docker "{$tls_options}" login -u "${username}" -p "${password}" -e "${email}" ${registry}
+  docker $tls_opts login -u "${username}" -p "${password}" -e "${email}" ${registry}
 fi
 
 tag_source=$(jq -r '.source.tag // "latest"' < $payload)
@@ -94,8 +94,8 @@ pull_tag=$(jq -r '.params.pull_tag // "latest"' < $payload)
 rootfs="$(jq -r '.params.rootfs' < $payload)"
 
 if [ -n "$load_base" ]; then
-  docker "{$tls_options}" load -i "${load_base}/image"
-  docker "{$tls_options}" tag \
+  docker $tls_opts load -i "${load_base}/image"
+  docker $tls_opts tag \
     "$(cat "${load_base}/image-id")" \
     "$(cat "${load_base}/repository"):$(cat "${load_base}/tag")"
 fi
@@ -106,19 +106,19 @@ if [ -n "$build" ]; then
   fi
 
   if [ -n "$dockerfile" ]; then
-    docker "{$tls_options}" build -t "${repository}:${tag_name}" -f "$dockerfile" "$build"
+    docker $tls_opts build -t "${repository}:${tag_name}" -f "$dockerfile" "$build"
   else
-    docker "{$tls_options}" build -t "${repository}:${tag_name}" "$build"
+    docker $tls_opts build -t "${repository}:${tag_name}" "$build"
   fi
 
 elif [ -n "$load_file" ]; then
-  docker "{$tls_options}" load -i "$load_file"
-  docker "{$tls_options}" tag "${load_repository}:${load_tag}" "${repository}:${tag_name}"
+  docker $tls_opts load -i "$load_file"
+  docker $tls_opts tag "${load_repository}:${load_tag}" "${repository}:${tag_name}"
 elif [ -n "$import_file" ]; then
-  cat "$import_file" | docker "{$tls_options}" import - "${repository}:${tag_name}"
+  cat "$import_file" | docker $tls_opts import - "${repository}:${tag_name}"
 elif [ -n "$pull_repository" ]; then
-  docker "{$tls_options}" pull "${pull_repository}:${pull_tag}"
-  docker "{$tls_options}" tag "${pull_repository}:${pull_tag}" "${repository}:${tag_name}"
+  docker $tls_opts pull "${pull_repository}:${pull_tag}"
+  docker $tls_opts tag "${pull_repository}:${pull_tag}" "${repository}:${tag_name}"
 else
   echo "must specify build or image param"
   exit 1
@@ -127,8 +127,8 @@ fi
 image_id="$(image_from_tag "$repository" "$tag_name")"
 
 if [ "$rootfs" = "true" ]; then
-  docker "{$tls_options}" run --cidfile=container.cid "$image_id" echo container created
-  docker "{$tls_options}" export $(cat container.cid) > ${destination}/rootfs.tar
+  docker $tls_opts run --cidfile=container.cid "$image_id" echo container created
+  docker $tls_opts export $(cat container.cid) > ${destination}/rootfs.tar
 fi
 
 # afaict there's no clean way to get the digest after a push. docker prints
@@ -141,7 +141,7 @@ fi
 # careful to not let 'tee' mask exit status
 
 {
-  if ! docker "{$tls_options}" push "${repository}:${tag_name}"; then
+  if ! docker $tls_opts push "${repository}:${tag_name}"; then
     touch /tmp/push-failed
   fi
 } | tee push-output
@@ -153,8 +153,8 @@ fi
 digest="$(tail -1 push-output | awk '{print $3}')"
 
 if [ "$need_tag_as_latest" = "true" ] && [ "${tag_name}" != "latest"  ]    ; then
-  docker "{$tls_options}" tag "${repository}:${tag_name}" "${repository}:latest"
-  docker "{$tls_options}" push "${repository}:latest"
+  docker $tls_opts tag "${repository}:${tag_name}" "${repository}:latest"
+  docker $tls_opts push "${repository}:latest"
   echo "${repository}:${tag_name} tagged as latest"
 fi
 
