@@ -53,7 +53,7 @@ save="$(jq -r '.params.save // false' < $payload)"
 
 mkdir -p $destination
 
-image_name="${repository}@${digest}"
+image_name="${repository}:${tag}@${digest}"
 
 if [ "$skip_download" = "false" ]; then
   certs_to_file "$ca_certs"
